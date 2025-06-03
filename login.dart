@@ -1,5 +1,7 @@
+import 'package:first_project/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'google_service.dart';
 import 'register.dart';
 import 'shoecatalog.dart';
 import 'forgetpass.dart';
@@ -16,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoginButtonEnabled = false;
   bool _isLoading = false;
+  final GoogleAuthService _authService = GoogleAuthService();
 
   @override
   void initState() {
@@ -70,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (userCredential.user != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) =>  ShoeCatalogPage()),
+          MaterialPageRoute(builder: (context) => ShoeCatalogPage()),
         );
       } else {
         _showDialog('Verify Email', 'Please verify your email address.');
@@ -169,8 +172,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   elevation: 2,
                   child: InkWell(
-                    onTap: () {
-                      _showDialog('Coming Soon', 'Google login is not yet implemented.');
+                    onTap: () async{
+                      // Attempt to sign in with Google
+                      User? user = await _authService.signInWithGoogle();
+                      // If sign-in is successful, navigate to the HomeScreen
+                      if (user != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ShoeCatalogPage()),
+                        );
+                      }
                     },
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
