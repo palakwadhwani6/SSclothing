@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -10,7 +11,8 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isButtonEnabled = false;
-  String _message = ''; // To display feedback to the user
+  bool _isLoading = false;
+  String _message = '';
 
   @override
   void initState() {
@@ -21,24 +23,50 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void _validateInput() {
     setState(() {
       _isButtonEnabled = _emailController.text.isNotEmpty &&
-          _emailController.text.contains('@'); // Basic email validation
+          _emailController.text.contains('@');
     });
   }
 
-  void _sendPasswordResetEmail() {
+  Future<void> _sendPasswordResetEmail() async {
     if (!_isButtonEnabled) return;
 
-    // --- In a real app, you would integrate with your backend here ---
-    // For example, call an API to send a password reset link.
-    // For this example, we'll just simulate it.
     setState(() {
-      _message =
-      'If an account exists for ${_emailController.text}, a password reset link has been sent.';
-      // Optionally, clear the email field or navigate back after a delay
+      _isLoading = true;
+      _message = '';
     });
 
-    print('Password reset requested for: ${_emailController.text}');
-    // You might want to show a success message or navigate away
+    try {
+      await FirebaseAuth.instance
+          .sendPasswordResetEmail(email: _emailController.text.trim());
+
+      setState(() {
+        _message =
+        'If an account exists for ${_emailController.text}, a password reset link has been sent.';
+      });
+
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Email Sent'),
+          content: Text(
+              'Check your inbox for the reset link for ${_emailController.text.trim()}.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _message = e.message ?? 'An error occurred.';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -55,8 +83,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         title: const Text('Forgot Password'),
         centerTitle: true,
         backgroundColor: Colors.white,
-        elevation: 0, // Optional: for a flatter look
-        leading: IconButton( // Adds a back button
+        elevation: 0,
+        leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -83,18 +111,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _isButtonEnabled ? _sendPasswordResetEmail : null,
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                onPressed: _isButtonEnabled
+                    ? _sendPasswordResetEmail
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isButtonEnabled ? Colors.amber : Colors.grey,
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  textStyle: const TextStyle(fontSize: 16, color: Colors.black),
+                  backgroundColor: _isButtonEnabled
+                      ? Colors.amber
+                      : Colors.grey,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 50, vertical: 15),
+                  textStyle: const TextStyle(
+                      fontSize: 16, color: Colors.black),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                   minimumSize: const Size(double.infinity, 50),
                 ),
-                child: const Text('Send Reset Link', style: TextStyle(color: Colors.black)),
+                child: const Text(
+                  'Send Reset Link',
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
               const SizedBox(height: 20),
               if (_message.isNotEmpty)
@@ -103,8 +142,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   child: Text(
                     _message,
                     style: TextStyle(
-                        color: Colors.green.shade700, // Or Colors.red for errors
-                        fontSize: 14),
+                        color: Colors.green.shade700, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                 ),
