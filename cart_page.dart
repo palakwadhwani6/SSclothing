@@ -1,6 +1,8 @@
+import 'package:first_project/profilepage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'homescreen.dart'; // Make sure this import path is correct
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -23,17 +25,31 @@ class _CartPageState extends State<CartPage> {
       );
     }
 
-    // Reference to the cart collection (for deletions)
+    // Reference to the cart collection
     final cartCollectionRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user!.uid)
         .collection('cart');
 
-    // Query to listen to ordered cart items
+    // Ordered cart query
     final cartQuery = cartCollectionRef.orderBy('timestamp', descending: true);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Bag')),
+      appBar: AppBar(
+        title: const Text('My Bag'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person, color: Colors.black),
+            tooltip: 'Go to profile',
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => HomeScreen(user: user!)),
+              );
+            },
+          ),
+        ],
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: cartQuery.snapshots(),
         builder: (context, snapshot) {
@@ -76,7 +92,6 @@ class _CartPageState extends State<CartPage> {
                       child: GestureDetector(
                         onTap: () async {
                           try {
-                            // Use collection ref here to delete document by id
                             await cartCollectionRef.doc(doc.id).delete();
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Item removed from cart')),
